@@ -7,9 +7,7 @@ module Pilot
 
       UI.success("Ready to upload new build to TestFlight (App: #{app.apple_id})...")
 
-      plist = FastlaneCore::IpaFileAnalyser.fetch_info_plist_file(config[:ipa]) || {}
-      platform = plist["DTPlatformName"]
-      platform = "ios" if platform == "iphoneos" # via https://github.com/fastlane/spaceship/issues/247
+      platform = FastlaneCore::IpaFileAnalyser.fetch_app_platform(config[:ipa])
       package_path = FastlaneCore::IpaUploadPackageBuilder.new.generate(app_id: app.apple_id,
                                                                       ipa_path: config[:ipa],
                                                                   package_path: "/tmp",
@@ -80,7 +78,11 @@ module Pilot
         config[:app_identifier] = ask("App Identifier: ")
       end
 
-      builds = app.all_processing_builds + app.builds
+      if config[:app_platform].to_s.length == 0
+        config[:app_platform] = ask("App Platform (ios, appletvos, osx): ")
+      end
+
+      builds = app.all_processing_builds(platform: config[:app_platform]) + app.builds(platform: config[:app_platform])
       # sort by upload_date
       builds.sort! { |a, b| a.upload_date <=> b.upload_date }
       rows = builds.collect { |build| describe_build(build) }
@@ -106,7 +108,7 @@ module Pilot
 
     # This method will takes care of checking for the processing builds every few seconds
     # @return [Build] The build that we just uploaded
-    def wait_for_processing_build
+    def wait_for_processing_build(platform: nil)
       # the upload date of the new buid
       # we use it to identify the build
       start = Time.now
@@ -124,7 +126,7 @@ module Pilot
         if FastlaneCore::Feature.enabled?('PILOT_WAIT_FOR_NEW_BUILD_TRAINS_ON_ITUNES_CONNECT') && app.build_trains.count == 0
           UI.message("New application; waiting for build train to appear on iTunes Connect")
         else
-          builds = app.all_processing_builds
+          builds = app.all_processing_builds(platform: platform)
           break if builds.count == 0
           latest_build = builds.last
           UI.message("Waiting for iTunes Connect to finish processing the new build (#{latest_build.train_version} - #{latest_build.build_version})")
@@ -139,7 +141,7 @@ module Pilot
         # true -> false, where the second true is transient. This causes a spurious failure. Find build by build_version
         # and ensure it's not processing before proceeding - it had to have already been false before, to get out of the
         # previous loop.
-        full_build = app.build_trains[latest_build.train_version].builds.find do |b|
+        full_build = app.build_trains(platform: platform)[latest_build.train_version].builds.find do |b|
           b.build_version == latest_build.build_version
         end
 
