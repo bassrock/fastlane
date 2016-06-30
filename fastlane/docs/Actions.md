@@ -313,14 +313,6 @@ Select and build with the Xcode installed at the provided path. Use the `xcversi
 xcode_select "/Applications/Xcode6.1.app"
 ```
 
-### [Xcake](https://github.com/jcampbell05/xcake/)
-
-If you use [Xcake](https://github.com/jcampbell05/xcake/) you can use the `xcake` integration to run `xcake make` before building your app.
-
-```ruby
-xcake
-```
-
 ### [resign](https://github.com/fastlane/fastlane/tree/master/sigh#resign)
 This will resign an ipa with another signing identity and provisioning profile.
 
@@ -1788,9 +1780,7 @@ import_from_git(
 Get information about the last git commit, returns the commit hash, the abbreviated commit hash, the author and the git message.
 
 ```ruby
-commit = last_git_commit_message
-crashlytics(notes: commit[:message])
-puts commit[:author]
+crashlytics(notes: last_git_commit_message)
 ```
 
 ### create_pull_request

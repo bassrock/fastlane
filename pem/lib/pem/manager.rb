@@ -14,7 +14,7 @@ module PEM
       }.freeze
 
       def start
-        FastlaneCore::PrintTable.print_values(config: PEM.config, hide_keys: [], title: "Summary for PEM #{PEM::VERSION}")
+        FastlaneCore::PrintTable.print_values(config: PEM.config, hide_keys: [:new_profile], title: "Summary for PEM #{PEM::VERSION}")
         login
 
         app = Spaceship.app.find_by_platform(PEM.config[:app_identifier], platform: PEM.config[:platform])
