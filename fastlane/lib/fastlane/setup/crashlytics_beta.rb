@@ -76,9 +76,7 @@ module Fastlane
     gym(scheme: '#{scheme}')
     crashlytics(api_token: '#{api_key}',
              build_secret: '#{build_secret}',
-            notifications: false,
-                   emails: [],
-                   groups: []
+            notifications: false
               )
   end
       }
@@ -86,16 +84,14 @@ module Fastlane
 
     def fastfile_template(api_key, build_secret, scheme)
       <<-eos
-fastlane_version "1.93.0"
+fastlane_version "#{Fastlane::VERSION}"
 default_platform :ios
 platform :ios do
   lane :beta do
     gym(scheme: '#{scheme}')
     crashlytics(api_token: '#{api_key}',
              build_secret: '#{build_secret}',
-            notifications: false,
-                   emails: [],
-                   groups: []
+            notifications: false
             )
   end
 end
