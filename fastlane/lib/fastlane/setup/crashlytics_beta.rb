@@ -30,6 +30,7 @@ module Fastlane
       UI.crash!("No project available at path #{path}") unless File.exist?(path)
       xcode_project = Xcodeproj::Project.open(path)
       target = xcode_project.targets.find { |t| t.name == target_name }
+      UI.crash!("Unable to locate a target by the name of #{target_name}") if target.nil?
       scripts = target.build_phases.select { |t| t.class == Xcodeproj::Project::Object::PBXShellScriptBuildPhase }
       crash_script = scripts.find { |s| includes_run_script?(s.shell_script) }
       UI.user_error!("Unable to find Crashlytics Run Script Build Phase") if crash_script.nil?
@@ -73,10 +74,11 @@ module Fastlane
     def lane_template(api_key, build_secret, scheme)
       %{
   lane :beta do
-    gym(scheme: '#{scheme}')
+    # set 'export_method' to 'ad-hoc' if your Crashlytics Beta distribution uses ad-hoc provisioning
+    gym(scheme: '#{scheme}', export_method: 'development')
     crashlytics(api_token: '#{api_key}',
              build_secret: '#{build_secret}',
-            notifications: false
+            notifications: true
               )
   end
       }
@@ -88,10 +90,11 @@ fastlane_version "#{Fastlane::VERSION}"
 default_platform :ios
 platform :ios do
   lane :beta do
-    gym(scheme: '#{scheme}')
+    # set 'export_method' to 'ad-hoc' if your Crashlytics Beta distribution uses ad-hoc provisioning
+    gym(scheme: '#{scheme}', export_method: 'development')
     crashlytics(api_token: '#{api_key}',
              build_secret: '#{build_secret}',
-            notifications: false
+            notifications: true
             )
   end
 end

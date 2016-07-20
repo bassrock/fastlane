@@ -119,10 +119,20 @@ module Pilot
       UI.message("Waiting for iTunes Connect to process the new build")
       loop do
         sleep wait_processing_interval
-        builds = app.all_processing_builds(platform: platform)
-        break if builds.count == 0
-        latest_build = builds.last
-        UI.message("Waiting for iTunes Connect to finish processing the new build (#{latest_build.train_version} - #{latest_build.build_version})")
+
+        # before we look for processing builds, we need to ensure that there
+        #  is a build train for this application; new applications don't
+        #  build trains right away, and if we don't do this check, we will
+        #  get break out of this loop and then generate an error later when we
+        #  have a nil build
+        if FastlaneCore::Feature.enabled?('PILOT_WAIT_FOR_NEW_BUILD_TRAINS_ON_ITUNES_CONNECT') && app.build_trains(platform: platform).count == 0
+          UI.message("New application; waiting for build train to appear on iTunes Connect")
+        else
+          builds = app.all_processing_builds(platform: platform)
+          break if builds.count == 0
+          latest_build = builds.last
+          UI.message("Waiting for iTunes Connect to finish processing the new build (#{latest_build.train_version} - #{latest_build.build_version})")
+        end
       end
 
       UI.user_error!("Error receiving the newly uploaded binary, please check iTunes Connect") if latest_build.nil?
