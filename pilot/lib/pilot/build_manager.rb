@@ -30,7 +30,7 @@ module Pilot
       end
 
       UI.message("If you want to skip waiting for the processing to be finished, use the `skip_waiting_for_build_processing` option")
-      uploaded_build = wait_for_processing_build # this might take a while
+      uploaded_build = wait_for_processing_build(platform: platform) # this might take a while
 
       distribute(options, uploaded_build)
     end
@@ -109,7 +109,7 @@ module Pilot
 
     # This method will takes care of checking for the processing builds every few seconds
     # @return [Build] The build that we just uploaded
-    def wait_for_processing_build(platform)
+    def wait_for_processing_build(platform: nil)
       # the upload date of the new buid
       # we use it to identify the build
 
