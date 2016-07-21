@@ -138,13 +138,6 @@ module Spaceship
         platforms
       end
 
-      def types
-        types = []
-        version_sets.each do |version_set|
-          types << version_set.type
-        end
-        types
-      end
 
       def type
         if self.version_sets.nil?
