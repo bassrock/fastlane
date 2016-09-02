@@ -6,6 +6,8 @@ end
 
 def itc_stub_login
   # Retrieving the current login URL
+  itc_service_key_path = File.expand_path("~/Library/Caches/spaceship_itc_service_key.txt")
+  File.delete(itc_service_key_path) if File.exist?(itc_service_key_path)
 
   stub_request(:get, 'https://itunesconnect.apple.com/itc/static-resources/controllers/login_cntrl.js').
     to_return(status: 200, body: itc_read_fixture_file('login_cntrl.js'))
@@ -63,6 +65,14 @@ def itc_stub_applications
 
   stub_request(:get, "https://itunesconnect.apple.com/WebObjects/iTunesConnect.woa/ra/apps/898536088/versions/814624685/stateHistory?platform=ios").
     to_return(status: 200, body: itc_read_fixture_file('app_version_states_history.json'), headers: { 'Content-Type' => 'application/json' })
+end
+
+def itc_stub_ratings
+  stub_request(:get, "https://itunesconnect.apple.com/WebObjects/iTunesConnect.woa/ra/apps/898536088/reviews/summary?platform=ios&versionId=").
+    to_return(status: 200, body: itc_read_fixture_file('ratings_summary.json'), headers: { 'Content-Type' => 'application/json' })
+
+  stub_request(:get, "https://itunesconnect.apple.com/WebObjects/iTunesConnect.woa/ra/apps/898536088/reviews?platform=ios&storefront=US&versionId=").
+    to_return(status: 200, body: itc_read_fixture_file('review_by_storefront.json'), headers: { 'Content-Type' => 'application/json' })
 end
 
 def itc_stub_build_details

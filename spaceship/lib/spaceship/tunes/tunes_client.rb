@@ -126,9 +126,7 @@ module Spaceship
       send_shared_login_request(user, password)
     end
 
-    # rubocop:disable Metrics/CyclomaticComplexity
     # rubocop:disable Metrics/PerceivedComplexity
-    # rubocop:disable Metrics/AbcSize
     def handle_itc_response(raw)
       return unless raw
       return unless raw.kind_of? Hash
@@ -186,9 +184,7 @@ module Spaceship
 
       return data
     end
-    # rubocop:enable Metrics/CyclomaticComplexity
     # rubocop:enable Metrics/PerceivedComplexity
-    # rubocop:enable Metrics/AbcSize
 
     #####################################################
     # @!group Applications
@@ -233,16 +229,16 @@ module Spaceship
       # Now fill in the values we have
       # some values are nil, that's why there is a hash
       data['versionString'] = { value: version }
-      data['newApp']['name'] = { value: name }
-      data['newApp']['bundleId']['value'] = bundle_id
-      data['newApp']['primaryLanguage']['value'] = primary_language || 'English'
-      data['newApp']['vendorId'] = { value: sku }
-      data['newApp']['bundleIdSuffix']['value'] = bundle_id_suffix
-      data['companyName']['value'] = company_name if company_name
-      data['newApp']['appType'] = app_type
+      data['name'] = { value: name }
+      data['bundleId'] = { value: bundle_id }
+      data['primaryLanguage'] = { value: primary_language || 'English' }
+      data['vendorId'] = { value: sku }
+      data['bundleIdSuffix'] = { value: bundle_id_suffix }
+      data['companyName'] = { value: company_name } if company_name
+      data['enabledPlatformsForCreation'] = { value: [app_type] }
 
       data['initialPlatform'] = app_type
-      data['enabledPlatformsForCreation']['value'] = [app_type]
+      data['enabledPlatformsForCreation'] = { value: [app_type] }
 
       # Now send back the modified hash
       r = request(:post) do |req|
@@ -273,6 +269,16 @@ module Spaceship
     def get_resolution_center(app_id, platform)
       r = request(:get, "ra/apps/#{app_id}/platforms/#{platform}/resolutionCenter?v=latest")
       parse_response(r, 'data')
+    end
+
+    def get_rating_summary(app_id, platform, versionId = '')
+      r = request(:get, "ra/apps/#{app_id}/reviews/summary?platform=#{platform}&versionId=#{versionId}")
+      parse_response(r, 'data')
+    end
+
+    def get_reviews(app_id, platform, storefront, versionId = '')
+      r = request(:get, "ra/apps/#{app_id}/reviews?platform=#{platform}&storefront=#{storefront}&versionId=#{versionId}")
+      parse_response(r, 'data')['reviews']
     end
 
     #####################################################
@@ -542,20 +548,18 @@ module Spaceship
     end
 
     # All build trains, even if there is no TestFlight
-    def all_build_trains(app_id: nil, platform: 'ios')
-      platform = 'ios' if platform.nil?
-      r = request(:get, "ra/apps/#{app_id}/buildHistory?platform=#{platform}")
+    def all_build_trains(app_id: nil, platform: nil)
+      r = request(:get, "ra/apps/#{app_id}/buildHistory?platform=#{platform || 'ios'}")
       handle_itc_response(r.body)
     end
 
-    def all_builds_for_train(app_id: nil, train: nil, platform: 'ios')
-      platform = 'ios' if platform.nil?
-      r = request(:get, "ra/apps/#{app_id}/trains/#{train}/buildHistory?platform=#{platform}")
+    def all_builds_for_train(app_id: nil, train: nil, platform: nil)
+      r = request(:get, "ra/apps/#{app_id}/trains/#{train}/buildHistory?platform=#{platform || 'ios'}")
       handle_itc_response(r.body)
     end
 
-    def build_details(app_id: nil, train: nil, build_number: nil)
-      r = request(:get, "ra/apps/#{app_id}/platforms/ios/trains/#{train}/builds/#{build_number}/details")
+    def build_details(app_id: nil, train: nil, build_number: nil, platform: nil)
+      r = request(:get, "ra/apps/#{app_id}/platforms/#{platform || 'ios'}/trains/#{train}/builds/#{build_number}/details")
       handle_itc_response(r.body)
     end
 

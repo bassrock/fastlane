@@ -51,29 +51,6 @@ module Spaceship
       "https://developer.apple.com/services-account/#{PROTOCOL_VERSION}/"
     end
 
-    # Fetches the latest API Key from the Apple Dev Portal
-    def api_key
-      cache_path = File.expand_path("~/Library/Caches/spaceship_api_key.txt")
-      begin
-        cached = File.read(cache_path)
-      rescue Errno::ENOENT
-      end
-      return cached if cached
-
-      landing_url = "https://developer.apple.com/account/"
-      logger.info("GET: " + landing_url)
-      headers = @client.get(landing_url).headers
-      results = headers['location'].match(/.*appIdKey=(\h+)/)
-      if (results || []).length > 1
-        api_key = results[1]
-        FileUtils.mkdir_p(File.dirname(cache_path))
-        File.write(cache_path, api_key) if api_key.length == 64
-        return api_key
-      else
-        raise "Could not find latest API Key from the Dev Portal - the server might be slow right now"
-      end
-    end
-
     def send_login_request(user, password)
       response = send_shared_login_request(user, password)
       return response if self.cookie.include?("myacinfo")
@@ -106,6 +83,10 @@ module Spaceship
 
       if teams.count > 1
         puts "The current user is in #{teams.count} teams. Pass a team ID or call `select_team` to choose a team. Using the first one for now."
+      end
+
+      if teams.count == 0
+        raise "User '#{user}' does not have access to any teams with an active membership"
       end
       @current_team_id ||= teams[0]['teamId']
     end
@@ -198,6 +179,8 @@ module Spaceship
     end
 
     def update_service_for_app(app, service)
+      ensure_csrf(Spaceship::App)
+
       request(:post, service.service_uri, {
         teamId: team_id,
         displayId: app.app_id,
@@ -209,6 +192,8 @@ module Spaceship
     end
 
     def associate_groups_with_app(app, groups)
+      ensure_csrf(Spaceship::AppGroup)
+
       request(:post, 'account/ios/identifiers/assignApplicationGroupToAppId.action', {
         teamId: team_id,
         appIdId: app.app_id,
@@ -226,32 +211,33 @@ module Spaceship
     end
 
     def create_app_by_platform!(type, name, bundle_id, platform: Spaceship::Portal::App::IOS)
+      # We moved the ensure_csrf to the top of this method
+      # as we got some users with issues around creating new apps
+      # https://github.com/fastlane/fastlane/issues/5813
+      ensure_csrf(Spaceship::App)
+
       ident_params = case type.to_sym
                      when :explicit
                        {
-                           type: 'explicit',
-                           explicitIdentifier: bundle_id,
-                           appIdentifierString: bundle_id,
-                           push: 'on',
-                           inAppPurchase: 'on',
-                           gameCenter: 'on'
+                         type: 'explicit',
+                         identifier: bundle_id,
+                         push: 'on',
+                         inAppPurchase: 'on',
+                         gameCenter: 'on'
                        }
                      when :wildcard
                        {
-                           type: 'wildcard',
-                           wildcardIdentifier: bundle_id,
-                           appIdentifierString: bundle_id
+                         type: 'wildcard',
+                         identifier: bundle_id
                        }
                      end
 
       params = {
-          appIdName: name,
-          teamId: team_id
+        name: name,
+        teamId: team_id
       }
 
       params.merge!(ident_params)
-
-      ensure_csrf
 
       r = request(:post, Spaceship::PortalConstants::CREATE_APP_ID_URL[platform], params)
       parse_response(r, 'appId')
@@ -265,10 +251,11 @@ module Spaceship
 
     def delete_app_by_platform!(app_id, platform: Spaceship::Portal::App::IOS)
       raise 'The developer portal does not allow deleting of iCloud Container App Ids' if platform == Spaceship::Portal::App::ICLOUD
+      ensure_csrf(Spaceship::App)
 
       r = request(:post, Spaceship::PortalConstants::DELETE_APP_ID_URL[platform], {
-          teamId: team_id,
-          appIdId: app_id
+        teamId: team_id,
+        appIdId: app_id
       })
       parse_response(r)
     end
@@ -289,6 +276,8 @@ module Spaceship
     end
 
     def create_app_group!(name, group_id)
+      ensure_csrf(Spaceship::AppGroup)
+
       r = request(:post, 'account/ios/identifiers/addApplicationGroup.action', {
         name: name,
         identifier: group_id,
@@ -298,6 +287,8 @@ module Spaceship
     end
 
     def delete_app_group!(app_group_id)
+      ensure_csrf(Spaceship::AppGroup)
+
       r = request(:post, 'account/ios/identifiers/deleteApplicationGroup.action', {
         teamId: team_id,
         applicationGroup: app_group_id
@@ -347,6 +338,8 @@ module Spaceship
     end
 
     def create_device_by_platform!(device_name, device_id, platform: Spaceship::Portal::App::IOS)
+      ensure_csrf(Spaceship::Device)
+
       req = request(:post) do |r|
         r.url "https://developerservices2.apple.com/services/#{PROTOCOL_VERSION}/#{platform_slug(platform)}/addDevice.action"
         r.params = {
@@ -382,8 +375,8 @@ module Spaceship
       end
     end
 
-    def create_certificate!(type, csr, app_id)
-      ensure_csrf
+    def create_certificate!(type, csr, app_id = nil)
+      ensure_csrf(Spaceship::Certificate)
 
       params = {
         teamId: team_id,
@@ -436,10 +429,12 @@ module Spaceship
     end
 
     def revoke_certificate_by_platform!(certificate_id, type, platform: Spaceship::Portal::App::IOS)
+      ensure_csrf(Spaceship::Certificate)
+
       r = request(:post, "account/#{platform_slug(platform)}/certificate/revokeCertificate.action", {
-          teamId: team_id,
-          certificateId: certificate_id,
-          type: type
+        teamId: team_id,
+        certificateId: certificate_id,
+        type: type
       })
       parse_response(r, 'certRequests')
     end
@@ -474,7 +469,9 @@ module Spaceship
     end
 
     def create_provisioning_profile_by_platform!(name, distribution_method, app_id, certificate_ids, device_ids, platform: Spaceship::Portal::App::IOS, sub_platform: nil)
-      ensure_csrf
+      ensure_csrf(Spaceship::ProvisioningProfile) do
+        fetch_csrf_token_for_provisioning
+      end
 
       params = {
           teamId: team_id,
@@ -498,6 +495,10 @@ module Spaceship
     end
 
     def download_provisioning_profile_by_platform(profile_id, platform: Spaceship::Portal::App::IOS)
+      ensure_csrf(Spaceship::ProvisioningProfile) do
+        fetch_csrf_token_for_provisioning
+      end
+
       r = request(:get, "account/#{platform_slug(platform)}/profile/downloadProfileContent", {
         teamId: team_id,
         provisioningProfileId: profile_id
@@ -517,7 +518,9 @@ module Spaceship
     end
 
     def delete_provisioning_profile_by_platform!(profile_id, platform: Spaceship::Portal::App::IOS)
-      ensure_csrf
+      ensure_csrf(Spaceship::ProvisioningProfile) do
+        fetch_csrf_token_for_provisioning
+      end
 
       r = request(:post, "account/#{platform_slug(platform)}/profile/deleteProvisioningProfile.action", {
         teamId: team_id,
@@ -533,6 +536,10 @@ module Spaceship
     end
 
     def repair_provisioning_profile_by_platform!(profile_id, name, distribution_method, app_id, certificate_ids, device_ids, platform: Spaceship::Portal::App::IOS)
+      ensure_csrf(Spaceship::ProvisioningProfile) do
+        fetch_csrf_token_for_provisioning
+      end
+
       r = request(:post, "account/#{platform_slug(platform)}/profile/regenProvisioningProfile.action", {
         teamId: team_id,
         provisioningProfileId: profile_id,
@@ -546,14 +553,58 @@ module Spaceship
       parse_response(r, 'provisioningProfile')
     end
 
+    # We need a custom way to fetch the csrf token for the provisioning profile requests, since
+    # we use a separate API endpoint (host of Xcode API) to fetch the provisioning profiles
+    # All we do is fetch one profile (if exists) to get a valid csrf token with its time stamp
+    # This method is being called from all requests that modify, create or downloading provisioning
+    # profiles.
+    # Source https://github.com/fastlane/fastlane/issues/5903
+    def fetch_csrf_token_for_provisioning(mac: false)
+      req = request(:post) do |r|
+        r.url "https://developer.apple.com/services-account/#{PROTOCOL_VERSION}/account/#{platform_slug(mac)}/profile/listProvisioningProfiles.action"
+        r.params = {
+          teamId: team_id,
+          pageSize: 1,
+          pageNumber: 1,
+          sort: "name=asc"
+        }
+      end
+
+      parse_response(req, 'provisioningProfiles')
+      return nil
+    end
+
     private
 
-    def ensure_csrf
-      if csrf_tokens.count == 0
-        # If we directly create a new resource (e.g. app) without querying anything before
-        # we don't have a valid csrf token, that's why we have to do at least one request
-        apps
+    # This is a cache of entity type (App, AppGroup, Certificate, Device) to csrf_tokens
+    def csrf_cache
+      @csrf_cache || {}
+    end
+
+    # Ensures that there are csrf tokens for the appropriate entity type
+    # Relies on store_csrf_tokens to set csrf_tokens to the appropriate value
+    # then stores that in the correct place in cache
+    # This method also takes a block, if you want to send a custom request, instead of
+    # calling `.all` on the given klass. This is used for provisioning profiles.
+    def ensure_csrf(klass)
+      if csrf_cache[klass]
+        self.csrf_tokens = csrf_cache[klass]
+        return
       end
+
+      self.csrf_tokens = nil
+
+      # If we directly create a new resource (e.g. app) without querying anything before
+      # we don't have a valid csrf token, that's why we have to do at least one request
+      block_given? ? yield : klass.all
+
+      # Update 18th August 2016
+      # For some reason, we have to query the resource twice to actually get a valid csrf_token
+      # I couldn't find out why, the first response does have a valid Set-Cookie header
+      # But it still needs this second request
+      block_given? ? yield : klass.all
+
+      csrf_cache[klass] = self.csrf_tokens
     end
   end
   # rubocop:enable Metrics/ClassLength
