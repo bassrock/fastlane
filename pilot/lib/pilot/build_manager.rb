@@ -38,7 +38,7 @@ module Pilot
     def distribute(options, build = nil)
       start(options)
       if config[:apple_id].to_s.length == 0 and config[:app_identifier].to_s.length == 0
-        config[:app_identifier] = ask("App Identifier: ")
+        config[:app_identifier] = UI.input("App Identifier: ")
       end
 
       if build.nil?
@@ -76,7 +76,7 @@ module Pilot
     def list(options)
       start(options)
       if config[:apple_id].to_s.length == 0 and config[:app_identifier].to_s.length == 0
-        config[:app_identifier] = ask("App Identifier: ")
+        config[:app_identifier] = UI.input("App Identifier: ")
       end
 
       if config[:app_platform].to_s.length == 0
