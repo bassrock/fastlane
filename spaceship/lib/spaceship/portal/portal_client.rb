@@ -462,6 +462,14 @@ module Spaceship
       parse_response(req, 'provisioningProfiles')
     end
 
+    def provisioning_profile_details(provisioning_profile_id: nil, mac: false)
+      r = request(:post, "account/#{platform_slug(mac)}/profile/getProvisioningProfile.action", {
+        teamId: team_id,
+        provisioningProfileId: provisioning_profile_id
+      })
+      parse_response(r, 'provisioningProfile')
+    end
+
     # <b>DEPRECATED:</b> Use <tt>create_provisioning_profile_by_platform!</tt> instead.
     def create_provisioning_profile!(name, distribution_method, app_id, certificate_ids, device_ids, mac: false, sub_platform: nil)
       puts '`create_provisioning_profile!` is deprecated. Please use `create_provisioning_profile_by_platform!` instead.'.red

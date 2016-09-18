@@ -3,39 +3,32 @@ require 'spec_helper'
 describe Spaceship::ProvisioningProfile do
   before { Spaceship.login }
   let(:client) { Spaceship::ProvisioningProfile.client }
-
-  describe '.factory' do
-    it 'should instantiate a subclass and pass the client' do
-      propro = Spaceship::ProvisioningProfile.factory({ 'distributionMethod' => 'store', 'appId' => {}, 'devices' => [{}], 'certificates' => [] })
-      expect(propro).to be_instance_of(Spaceship::ProvisioningProfile::AdHoc)
-      expect(propro.client).to eq(client)
-    end
-  end
+  let(:cert_id) { "C8DL7464RQ" }
 
   describe '#all' do
     let(:provisioning_profiles) { Spaceship::ProvisioningProfile.all }
 
     it "properly retrieves and filters the provisioning profiles" do
-      expect(provisioning_profiles.count).to eq(33) # ignore the Xcode generated profiles
+      expect(provisioning_profiles.count).to eq(3) # ignore the Xcode generated profiles
 
       profile = provisioning_profiles.last
-      expect(profile.name).to eq('net.sunapps.9 Development')
-      expect(profile.type).to eq('iOS Development')
-      expect(profile.app.app_id).to eq('572SH8263D')
+      expect(profile.name).to eq('net.sunapps.7 AdHoc')
+      expect(profile.type).to eq('iOS Distribution')
+      expect(profile.app.app_id).to eq('572XTN75U2')
       expect(profile.status).to eq('Active')
-      expect(profile.expires.to_s).to eq('2016-03-05T11:46:57+00:00')
-      expect(profile.uuid).to eq('34b221d4-31aa-4e55-9ea1-e5fac4f7ff8c')
+      expect(profile.expires.to_s).to eq('2015-11-25T22:45:50+00:00')
+      expect(profile.uuid).to eq('a8b1563e-7559-41f7-854b-6cd09f950d11')
       expect(profile.managed_by_xcode?).to eq(false)
-      expect(profile.distribution_method).to eq('limited')
-      expect(profile.class.type).to eq('limited')
-      expect(profile.class.pretty_type).to eq('Development')
-      expect(profile.type).to eq('iOS Development')
+      expect(profile.distribution_method).to eq('adhoc')
+      expect(profile.class.type).to eq('adhoc')
+      expect(profile.class.pretty_type).to eq('AdHoc')
+      expect(profile.type).to eq('iOS Distribution')
     end
 
     it 'should filter by the correct types' do
-      expect(Spaceship::ProvisioningProfile::Development.all.count).to eq(3)
-      expect(Spaceship::ProvisioningProfile::AdHoc.all.count).to eq(13)
-      expect(Spaceship::ProvisioningProfile::AppStore.all.count).to eq(17)
+      expect(Spaceship::ProvisioningProfile::Development.all.count).to eq(1)
+      expect(Spaceship::ProvisioningProfile::AdHoc.all.count).to eq(1)
+      expect(Spaceship::ProvisioningProfile::AppStore.all.count).to eq(1)
     end
 
     it 'should have an app' do
@@ -51,12 +44,12 @@ describe Spaceship::ProvisioningProfile do
     end
 
     it "returns the profile in an array if matching" do
-      profiles = Spaceship::ProvisioningProfile.find_by_bundle_id("net.sunapps.9")
-      expect(profiles.count).to eq(2)
+      profiles = Spaceship::ProvisioningProfile.find_by_bundle_id("net.sunapps.7")
+      expect(profiles.count).to eq(3)
 
-      expect(profiles.first.app.bundle_id).to eq('net.sunapps.9')
+      expect(profiles.first.app.bundle_id).to eq('net.sunapps.7')
       expect(profiles.first.distribution_method).to eq('store')
-      expect(profiles.last.distribution_method).to eq('limited')
+      expect(profiles.last.distribution_method).to eq('adhoc')
     end
   end
 
@@ -73,11 +66,11 @@ describe Spaceship::ProvisioningProfile do
     adhoc = Spaceship::ProvisioningProfile::AdHoc.all.first
 
     expect(adhoc.distribution_method).to eq('adhoc')
-    expect(adhoc.devices.count).to eq(13)
+    expect(adhoc.devices.count).to eq(2)
 
     device = adhoc.devices.first
-    expect(device.id).to eq('RK3285QATH')
-    expect(device.name).to eq('Felix Krause\'s iPhone 5')
+    expect(device.id).to eq('FVRY7XH22J')
+    expect(device.name).to eq('Felix Krause\'s iPhone 6s')
     expect(device.udid).to eq('aaabbbccccddddaaabbb')
     expect(device.platform).to eq('ios')
     expect(device.status).to eq('c')
@@ -160,32 +153,32 @@ describe Spaceship::ProvisioningProfile do
 
     it "repairs an existing profile with added devices" do
       profile.devices = Spaceship::Device.all_for_profile_type(profile.type)
-      expect(client).to receive(:repair_provisioning_profile_by_platform!).with('2MAY7NPHRU', 'net.sunapps.7 AppStore', 'store', '572XTN75U2', ["C8DL7464RQ"], ["AAAAAAAAAA", "BBBBBBBBBB", "CCCCCCCCCC", "DDDDDDDDDD"], platform: 'ios').and_return({})
+      expect(client).to receive(:repair_provisioning_profile_by_platform!).with('2MAY7NPHRU', 'net.sunapps.7 AppStore', 'store', '572XTN75U2', [cert_id], ["AAAAAAAAAA", "BBBBBBBBBB", "CCCCCCCCCC", "DDDDDDDDDD"], platform: 'ios').and_return({})
       profile.repair!
     end
 
     it "update the certificate if the current one doesn't exist" do
       profile.certificates = []
-      expect(client).to receive(:repair_provisioning_profile_by_platform!).with('2MAY7NPHRU', 'net.sunapps.7 AppStore', 'store', '572XTN75U2', ["C8DL7464RQ"], [], platform: 'ios').and_return({})
+      expect(client).to receive(:repair_provisioning_profile_by_platform!).with('2MAY7NPHRU', 'net.sunapps.7 AppStore', 'store', '572XTN75U2', [cert_id], [], platform: 'ios').and_return({})
       profile.repair!
     end
 
     it "update the certificate if the current one is invalid" do
-      expect(profile.certificates.first.id).to eq('XC5PH8D47H') # this was the previous one
-      expect(client).to receive(:repair_provisioning_profile_by_platform!).with('2MAY7NPHRU', 'net.sunapps.7 AppStore', 'store', '572XTN75U2', ["C8DL7464RQ"], [], platform: 'ios').and_return({})
+      expect(profile.certificates.first.id).to eq('3BH4JJSWM4') # this was the previous one
+      expect(client).to receive(:repair_provisioning_profile_by_platform!).with('2MAY7NPHRU', 'net.sunapps.7 AppStore', 'store', '572XTN75U2', [cert_id], [], platform: 'ios').and_return({})
       profile.repair! # repair will replace the old certificate with the new one
     end
 
     it "repairs an existing profile with no devices" do
-      expect(client).to receive(:repair_provisioning_profile_by_platform!).with('2MAY7NPHRU', 'net.sunapps.7 AppStore', 'store', '572XTN75U2', ["C8DL7464RQ"], [], platform: 'ios').and_return({})
+      expect(client).to receive(:repair_provisioning_profile_by_platform!).with('2MAY7NPHRU', 'net.sunapps.7 AppStore', 'store', '572XTN75U2', [cert_id], [], platform: 'ios').and_return({})
       profile.repair!
     end
 
     describe "Different Environments" do
       it "Development" do
         profile = Spaceship::ProvisioningProfile::Development.all.first
-        devices = ["RK3285QATH", "E687498679", "5YTNZ5A9RV", "VCD3RH54BK", "VA3Z744A8R", "T5VFWSCC2Z", "GD25LDGN99", "XJXGVS46MW", "L4378H292Z", "9T5RA84V77", "S4227Y42V5", "LEL449RZER", "WXQ7V239BE"]
-        expect(client).to receive(:repair_provisioning_profile_by_platform!).with('475ESRP5F3', 'net.sunapps.7 Development', 'limited', '572XTN75U2', ["C8DL7464RQ"], devices, platform: 'ios').and_return({})
+        devices = ["FVRY7XH22J", "4ZE252U553"]
+        expect(client).to receive(:repair_provisioning_profile_by_platform!).with('475ESRP5F3', 'net.sunapps.7 Development', 'limited', '572XTN75U2', [cert_id], devices, platform: 'ios').and_return({})
         profile.repair!
       end
     end
@@ -195,7 +188,7 @@ describe Spaceship::ProvisioningProfile do
     let(:profile) { Spaceship::ProvisioningProfile.all.first }
 
     it "updates an existing profile" do
-      expect(client).to receive(:repair_provisioning_profile_by_platform!).with('2MAY7NPHRU', 'net.sunapps.7 AppStore', 'store', '572XTN75U2', ["C8DL7464RQ"], [], platform: 'ios').and_return({})
+      expect(client).to receive(:repair_provisioning_profile_by_platform!).with('2MAY7NPHRU', 'net.sunapps.7 AppStore', 'store', '572XTN75U2', [cert_id], [], platform: 'ios').and_return({})
       profile.update!
     end
   end
