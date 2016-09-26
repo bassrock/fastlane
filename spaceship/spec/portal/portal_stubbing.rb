@@ -39,6 +39,10 @@ def adp_stub_provisioning
 
   # Download profiles
   stub_request(:post, "https://developer.apple.com/services-account/QH65B2/account/ios/profile/getProvisioningProfile.action").
+    with(body: { "provisioningProfileId" => true, "teamId" => "XXXXXXXXXX" }).
+    to_return(status: 200, body: "", headers: {})
+
+  stub_request(:post, "https://developer.apple.com/services-account/QH65B2/account/ios/profile/getProvisioningProfile.action").
     with(body: { "provisioningProfileId" => "2MAY7NPHRU", "teamId" => "XXXXXXXXXX" }).
     to_return(status: 200, body: adp_read_fixture_file('getProvisioningProfileAppStore.action.json'), headers: { 'Content-Type' => 'application/json' })
 
@@ -146,27 +150,27 @@ end
 
 def adp_stub_apps
   stub_request(:post, 'https://developer.apple.com/services-account/QH65B2/account/ios/identifiers/listAppIds.action').
-    with(body: { teamId: 'XXXXXXXXXX', pageSize: "500", pageNumber: "1", sort: 'name=asc' }).
+      with(body: { "teamId" => 'XXXXXXXXXX', "pageSize" => "500", "pageNumber" => "1", "sort" => 'name=asc' }).
     to_return(status: 200, body: adp_read_fixture_file('listApps.action.json'), headers: { 'Content-Type' => 'application/json' })
 
   stub_request(:post, 'https://developer.apple.com/services-account/QH65B2/account/mac/identifiers/listAppIds.action').
-    with(body: { teamId: 'XXXXXXXXXX', pageSize: "500", pageNumber: "1", sort: 'name=asc' }).
+      with(body: { "teamId" => 'XXXXXXXXXX', "pageSize" => "500", "pageNumber" => "1", "sort" => 'name=asc' }).
     to_return(status: 200, body: adp_read_fixture_file('listMacApps.action.json'), headers: { 'Content-Type' => 'application/json' })
 
   stub_request(:post, 'https://developer.apple.com/services-account/QH65B2/account/ios/identifiers/listWebsitePushIds.action').
-    with(body: { teamId: 'XXXXXXXXXX', pageSize: "500", pageNumber: "1", sort: 'name=asc' }).
+      with(body: { "teamId" => 'XXXXXXXXXX', "pageSize" => "500", "pageNumber" => "1", "sort" => 'name=asc' }).
     to_return(status: 200, body: adp_read_fixture_file('listWebsitePushIds.action.json'), headers: { 'Content-Type' => 'application/json' })
 
   stub_request(:post, 'https://developer.apple.com/services-account/QH65B2/account/cloudContainer/listCloudContainers.action').
-    with(body: { teamId: 'XXXXXXXXXX', pageSize: "500", pageNumber: "1", sort: 'name=asc' }).
+      with(body: { "teamId" => 'XXXXXXXXXX', "pageSize" => "500", "pageNumber" => "1", "sort" => 'name=asc' }).
     to_return(status: 200, body: adp_read_fixture_file('listCloudContainers.action.json'), headers: { 'Content-Type' => 'application/json' })
 
   stub_request(:post, 'https://developer.apple.com/services-account/QH65B2/account/ios/identifiers/listOMCs.action').
-    with(body: { teamId: 'XXXXXXXXXX', pageSize: "500", pageNumber: "1", sort: 'name=asc' }).
+      with(body: { "teamId" => 'XXXXXXXXXX', "pageSize" => "500", "pageNumber" => "1", "sort" => 'name=asc' }).
     to_return(status: 200, body: adp_read_fixture_file('listOMCs.action.json'), headers: { 'Content-Type' => 'application/json' })
 
   stub_request(:post, 'https://developer.apple.com/services-account/QH65B2/account/ios/identifiers/listPassTypeIds.action').
-    with(body: { teamId: 'XXXXXXXXXX', pageSize: "500", pageNumber: "1", sort: 'name=asc' }).
+    with(body: { "teamId" => 'XXXXXXXXXX', "pageSize" => "500", "pageNumber" => "1", "sort" => 'name=asc' }).
     to_return(status: 200, body: adp_read_fixture_file('listPassTypeIds.action.json'), headers: { 'Content-Type' => 'application/json' })
 
   stub_request(:post, "https://developer.apple.com/services-account/QH65B2/account/ios/identifiers/getAppIdDetail.action").

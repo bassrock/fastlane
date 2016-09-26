@@ -116,7 +116,6 @@ module Spaceship
         if ENV['DEBUG']
           # for debugging only
           # This enables tracking of networking requests using Charles Web Proxy
-          c.response :logger
           c.proxy "https://127.0.0.1:8888"
         end
       end
@@ -331,6 +330,9 @@ module Spaceship
       File.write(itc_service_key_path, @service_key)
 
       return @service_key
+    rescue => ex
+      puts ex.to_s
+      raise AppleTimeoutError.new, "Could not receive latest API key from iTunes Connect, this might be a server issue."
     end
 
     #####################################################
