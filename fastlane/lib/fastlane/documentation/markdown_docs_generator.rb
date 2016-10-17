@@ -1,4 +1,3 @@
-require 'pry'
 module Fastlane
   class MarkdownDocsGenerator
     ENHANCER_URL = "https://fastlane-enhancer.herokuapp.com"
@@ -95,7 +94,7 @@ module Fastlane
       @launches
     end
 
-    def generate!(target_path: "docs/ActionsAuto.md")
+    def generate!(target_path: "docs/Actions.md")
       template = File.join(Fastlane::ROOT, "lib/assets/Actions.md.erb")
 
       result = ERB.new(File.read(template), 0, '-').result(binding) # http://www.rrn.dk/rubys-erb-templating-system
