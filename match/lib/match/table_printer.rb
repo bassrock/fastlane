@@ -1,10 +1,9 @@
 module Match
   class TablePrinter
-    def self.print_summary(app_identifier: nil, type: nil)
+    def self.print_summary(app_identifier: nil, type: nil, platform: nil)
       rows = []
 
       type = type.to_sym
-      platform = params[:platform]
 
       rows << ["App Identifier", "", app_identifier]
       rows << ["Type", "", type]

@@ -47,7 +47,7 @@ module Match
 
       # Print a summary table for each app_identifier
       app_identifiers.each do |app_identifier|
-        TablePrinter.print_summary(app_identifier: app_identifier, type: params[:type])
+        TablePrinter.print_summary(app_identifier: app_identifier, type: params[:type], platform: params[:platform])
       end
 
       UI.success "All required keys, certificates and provisioning profiles are installed 🙌".green
