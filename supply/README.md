@@ -32,7 +32,6 @@ supply
 [![Twitter: @FastlaneTools](https://img.shields.io/badge/contact-@FastlaneTools-blue.svg?style=flat)](https://twitter.com/FastlaneTools)
 [![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat)](https://github.com/fastlane/fastlane/blob/master/supply/LICENSE)
 [![Gem](https://img.shields.io/gem/v/supply.svg?style=flat)](http://rubygems.org/gems/supply)
-[![Build Status](https://img.shields.io/circleci/project/fastlane/fastlane/master.svg?style=flat)](https://circleci.com/gh/fastlane/fastlane)
 
 ###### Command line tool for updating Android apps and their metadata on the Google Play Store
 
@@ -54,7 +53,7 @@ Get in contact with the developer on Twitter: [@FastlaneTools](https://twitter.c
 
 -------
 
-<h5 align="center"><code>supply</code> is part of <a href="https://fastlane.tools">fastlane</a>: The easiest way to automate building and releasing your iOS and Android apps.</h5>
+<h5 align="center"><code>supply</code> is part of <a href="https://fastlane.tools">fastlane</a>: The easiest way to automate beta deployments and releases for your iOS and Android apps.</h5>
 
 ## Features
 - Update existing Android applications on Google Play via the command line
@@ -186,7 +185,7 @@ This can be done using the `--track_promote_to` parameter.  The `--track_promote
 
 ### [`fastlane`](https://fastlane.tools) Toolchain
 
-- [`fastlane`](https://fastlane.tools): The easiest way to automate building and releasing your iOS and Android apps
+- [`fastlane`](https://fastlane.tools): The easiest way to automate beta deployments and releases for your iOS and Android apps
 - [`deliver`](https://github.com/fastlane/fastlane/tree/master/deliver): Upload screenshots, metadata and your app to the App Store
 - [`snapshot`](https://github.com/fastlane/fastlane/tree/master/snapshot): Automate taking localized screenshots of your iOS app on every device
 - [`frameit`](https://github.com/fastlane/fastlane/tree/master/frameit): Quickly put your screenshots into the right device frames
