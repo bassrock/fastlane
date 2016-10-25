@@ -47,6 +47,7 @@ module Match
         "[fastlane]",
         "Updated",
         params[:type].to_s,
+        params[:platform].to_s
       ].join(" ")
     end
 

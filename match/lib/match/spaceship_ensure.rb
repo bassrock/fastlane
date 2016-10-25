@@ -20,8 +20,8 @@ module Match
       Spaceship.select_team
     end
 
-    def bundle_identifier_exists(username: nil, app_identifier: nil)
-      found = Spaceship.app.find_by_platform(app_identifier, platform: params[:platform])
+    def bundle_identifier_exists(username: nil, app_identifier: nil, platform: nil)
+      found = Spaceship.app.find_by_platform(app_identifier, platform: platform)
       return if found
 
       require 'sigh'
