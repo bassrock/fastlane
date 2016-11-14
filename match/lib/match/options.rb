@@ -38,7 +38,7 @@ module Match
                                      env_name: "MATCH_PLATFORM",
                                      description: "Which platform to create a certificate for",
                                      is_string: true,
-                                     short_option: "-p",
+                                     short_option: "-o",
                                      default_value: 'ios',
                                      verify_block: proc do |value|
                                        UI.user_error!("The platform can only be ios, tvos, or mac") unless %('ios', 'tvos', 'mac').include? value
