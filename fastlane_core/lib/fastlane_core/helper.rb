@@ -39,6 +39,13 @@ module FastlaneCore
       return false
     end
 
+    # Do we run from a bundled fastlane, which contains Ruby and OpenSSL?
+    # Usually this means the fastlane directory is ~/.fastlane/bin/
+    # We set this value via the environment variable `SELF_CONTAINED`
+    def self.contained_fastlane?
+      ENV["SELF_CONTAINED"].to_s == "true"
+    end
+
     # @return [boolean] true if building in a known CI environment
     def self.ci?
       # Check for Jenkins, Travis CI, ... environment variables
@@ -46,6 +53,15 @@ module FastlaneCore
         return true if ENV.key?(current)
       end
       return false
+    end
+
+    def self.windows?
+      # taken from: http://stackoverflow.com/a/171011/1945875
+      (/cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM) != nil
+    end
+
+    def self.linux?
+      (/linux/ =~ RUBY_PLATFORM) != nil
     end
 
     # Is the currently running computer a Mac?
