@@ -129,6 +129,7 @@ module Spaceship
       loop do
         puts "Multiple iTunes Connect teams found, please enter the number of the team you want to use: "
         puts "Note: to automatically choose the team, provide either the iTunes Connect Team ID, or the Team Name in your fastlane/Appfile:"
+        puts "Alternatively you can pass the team name or team ID using the `FASTLANE_ITC_TEAM_ID` or `FASTLANE_ITC_TEAM_NAME` environment variable"
         first_team = teams.first["contentProvider"]
         puts ""
         puts "  itc_team_id \"#{first_team['contentProviderId']}\""
@@ -265,6 +266,7 @@ module Spaceship
     #   can't be changed after you submit your first build.
     def create_application!(name: nil, primary_language: nil, version: nil, sku: nil, bundle_id: nil, bundle_id_suffix: nil, company_name: nil)
       # First, we need to fetch the data from Apple, which we then modify with the user's values
+      primary_language ||= "English"
       app_type = 'ios'
       r = request(:get, "ra/apps/create/v2/?platformString=#{app_type}")
       data = parse_response(r, 'data')
@@ -274,7 +276,8 @@ module Spaceship
       data['versionString'] = { value: version }
       data['name'] = { value: name }
       data['bundleId'] = { value: bundle_id }
-      data['primaryLanguage'] = { value: primary_language || 'English' }
+      data['primaryLanguage'] = { value: primary_language }
+      data['primaryLocaleCode'] = { value: primary_language.to_itc_locale }
       data['vendorId'] = { value: sku }
       data['bundleIdSuffix'] = { value: bundle_id_suffix }
       data['companyName'] = { value: company_name } if company_name
@@ -484,13 +487,27 @@ module Spaceship
     # @param app_version (AppVersion): The version of your app
     # @param upload_image (UploadFile): The image to upload
     # @param device (string): The target device
+    # @param is_messages (Bool): True if the screenshot is for iMessage
     # @return [JSON] the response
-    def upload_screenshot(app_version, upload_image, device)
+    def upload_screenshot(app_version, upload_image, device, is_messages)
       raise "app_version is required" unless app_version
       raise "upload_image is required" unless upload_image
       raise "device is required" unless device
 
-      du_client.upload_screenshot(app_version, upload_image, content_provider_id, sso_token_for_image, device)
+      du_client.upload_screenshot(app_version, upload_image, content_provider_id, sso_token_for_image, device, is_messages)
+    end
+
+    # Uploads an iMessage screenshot
+    # @param app_version (AppVersion): The version of your app
+    # @param upload_image (UploadFile): The image to upload
+    # @param device (string): The target device
+    # @return [JSON] the response
+    def upload_messages_screenshot(app_version, upload_image, device)
+      raise "app_version is required" unless app_version
+      raise "upload_image is required" unless upload_image
+      raise "device is required" unless device
+
+      du_client.upload_messages_screenshot(app_version, upload_image, content_provider_id, sso_token_for_image, device)
     end
 
     # Uploads the transit app file
@@ -591,13 +608,15 @@ module Spaceship
     end
 
     # All build trains, even if there is no TestFlight
-    def all_build_trains(app_id: nil, platform: nil)
-      r = request(:get, "ra/apps/#{app_id}/buildHistory?platform=#{platform || 'ios'}")
+    def all_build_trains(app_id: nil, platform: 'ios')
+      platform = 'ios' if platform.nil?
+      r = request(:get, "ra/apps/#{app_id}/buildHistory?platform=#{platform}")
       handle_itc_response(r.body)
     end
 
-    def all_builds_for_train(app_id: nil, train: nil, platform: nil)
-      r = request(:get, "ra/apps/#{app_id}/trains/#{train}/buildHistory?platform=#{platform || 'ios'}")
+    def all_builds_for_train(app_id: nil, train: nil, platform: 'ios')
+      platform = 'ios' if platform.nil?
+      r = request(:get, "ra/apps/#{app_id}/trains/#{train}/buildHistory?platform=#{platform}")
       handle_itc_response(r.body)
     end
 
@@ -958,6 +977,24 @@ module Spaceship
     def app_promocodes_history(app_id: nil)
       r = request(:get, "ra/apps/#{app_id}/promocodes/history")
       parse_response(r, 'data')['requests']
+    end
+
+    #####################################################
+    # @!group reject
+    #####################################################
+
+    def reject!(app_id, version)
+      raise "app_id is required" unless app_id
+      raise "version is required" unless version
+
+      r = request(:post) do |req|
+        req.url "ra/apps/#{app_id}/versions/#{version}/reject"
+        req.headers['Content-Type'] = 'application/json'
+        req.body = app_id.to_s
+      end
+
+      handle_itc_response(r.body)
+      parse_response(r, 'data')
     end
 
     private

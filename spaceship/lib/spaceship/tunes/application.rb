@@ -157,6 +157,26 @@ module Spaceship
         Tunes::AppRatings.factory(attrs)
       end
 
+      def platforms
+        platforms = []
+        version_sets.each do |version_set|
+          platforms << version_set.platform
+        end
+        platforms
+      end
+
+      def type
+        if self.version_sets.nil?
+          raise 'The application has no version sets and Spaceship does not know what to do here.'
+        end
+
+        if self.version_sets.length == 1
+          version_sets[0].platform
+        end
+        platform = Spaceship::Tunes::AppVersionCommon.find_platform(raw_data['versionSets'])
+        platform['type']
+      end
+
       # kept for backward compatibility
       # tries to guess the platform of the currently submitted apps
       # note that as ITC now supports multiple app types, this might break

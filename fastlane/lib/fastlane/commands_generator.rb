@@ -13,6 +13,11 @@ module Fastlane
       $verbose = true if ARGV.include?("--verbose")
       $capture_output = true if ARGV.include?("--capture_output")
 
+      # has to be checked here - in case we wan't to troubleshoot plugin related issues
+      if ARGV.include?("--troubleshoot")
+        self.confirm_troubleshoot
+      end
+
       if $capture_output
         # Trace mode is enabled
         # redirect STDOUT and STDERR
@@ -42,6 +47,26 @@ module Fastlane
       end
     end
 
+    def self.confirm_troubleshoot
+      if Helper.is_ci?
+        UI.error "---"
+        UI.error "You are trying to use '--troubleshoot' on CI"
+        UI.error "this option is not usable in CI, as it is insecure"
+        UI.error "---"
+        UI.user_error!("Do not use --troubleshoot in CI")
+      end
+      # maybe already set by 'start'
+      return if $troubleshoot
+      UI.error "---"
+      UI.error "Are you sure you want to enable '--troubleshoot'?"
+      UI.error "All commmands will run in full unfiltered output mode."
+      UI.error "Sensitive data, like passwords, could be printed to the log."
+      UI.error "---"
+      if UI.confirm("Do you really want to enable --troubleshoot")
+        $troubleshoot = true
+      end
+    end
+
     def run
       program :version, Fastlane::VERSION
       program :description, [
@@ -56,6 +81,7 @@ module Fastlane
 
       global_option('--verbose') { $verbose = true }
       global_option('--capture_output', 'Captures the output of the current run, and generates a markdown issue template') { $capture_output = true }
+      global_option('--troubleshoot', 'Enables extended verbose mode. Use with caution, as this even includes ALL sensitive data. Cannot be used on CI.')
 
       always_trace!
 
@@ -106,7 +132,7 @@ module Fastlane
         c.action do |args, options|
           if options.json || ensure_fastfile
             require 'fastlane/lane_list'
-            path = Fastlane::FastlaneFolder.fastfile_path
+            path = FastlaneCore::FastlaneFolder.fastfile_path
 
             if options.json
               Fastlane::LaneList.output_json(path)
@@ -122,7 +148,7 @@ module Fastlane
         c.description = 'Lists all available lanes without description'
         c.action do |args, options|
           if ensure_fastfile
-            ff = Fastlane::FastFile.new(Fastlane::FastlaneFolder.fastfile_path)
+            ff = Fastlane::FastFile.new(FastlaneCore::FastlaneFolder.fastfile_path)
             UI.message "Available lanes:"
             ff.runner.available_lanes.each do |lane|
               UI.message "- #{lane}"
@@ -139,7 +165,7 @@ module Fastlane
 
         c.action do |args, options|
           if ensure_fastfile
-            ff = Fastlane::FastFile.new(File.join(Fastlane::FastlaneFolder.path || '.', 'Fastfile'))
+            ff = Fastlane::FastFile.new(File.join(FastlaneCore::FastlaneFolder.path || '.', 'Fastfile'))
             UI.message "You don't need to run `fastlane docs` manually any more, this will be done automatically for you."
             Fastlane::DocsGenerator.run(ff)
           end
@@ -271,7 +297,7 @@ module Fastlane
     # if that's not the case
     # return true if the Fastfile is available
     def ensure_fastfile
-      return true if Fastlane::FastlaneFolder.setup?
+      return true if FastlaneCore::FastlaneFolder.setup?
 
       create = UI.confirm('Could not find fastlane in current directory. Would you like to set it up?')
       Fastlane::Setup.new.run if create

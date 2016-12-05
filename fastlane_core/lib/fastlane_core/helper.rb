@@ -41,9 +41,9 @@ module FastlaneCore
 
     # Do we run from a bundled fastlane, which contains Ruby and OpenSSL?
     # Usually this means the fastlane directory is ~/.fastlane/bin/
-    # We set this value via the environment variable `SELF_CONTAINED`
+    # We set this value via the environment variable `FASTLANE_SELF_CONTAINED`
     def self.contained_fastlane?
-      ENV["SELF_CONTAINED"].to_s == "true"
+      ENV["FASTLANE_SELF_CONTAINED"].to_s == "true"
     end
 
     # @return [boolean] true if building in a known CI environment
@@ -149,6 +149,32 @@ module FastlaneCore
     # @return the full path to the iTMSTransporter executable
     def self.transporter_path
       return File.join(self.itms_path, 'bin', 'iTMSTransporter')
+    end
+
+    def self.keychain_path(name)
+      # Existing code expects that a keychain name will be expanded into a default path to Libary/Keychains
+      # in the user's home directory. However, this will not allow the user to pass an absolute path
+      # for the keychain value
+      #
+      # So, if the passed value can't be resolved as a file in Library/Keychains, just use it as-is
+      # as the keychain path.
+      #
+      # We need to expand each path because File.exist? won't handle directories including ~ properly
+      #
+      # We also try to append `-db` at the end of the file path, as with Sierra the default Keychain name
+      # has changed for some users: https://github.com/fastlane/fastlane/issues/5649
+      #
+
+      keychain_paths = [
+        File.join(Dir.home, 'Library', 'Keychains', name),
+        File.join(Dir.home, 'Library', 'Keychains', "#{name}-db"),
+        name,
+        "#{name}-db"
+      ].map { |path| File.expand_path(path) }
+
+      keychain_path = keychain_paths.find { |path| File.exist?(path) }
+      UI.user_error!("Could not locate the provided keychain. Tried:\n\t#{keychain_paths.join("\n\t")}") unless keychain_path
+      keychain_path
     end
 
     # @return the full path to the iTMSTransporter executable

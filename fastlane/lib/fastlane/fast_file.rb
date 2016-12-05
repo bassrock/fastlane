@@ -40,7 +40,7 @@ module Fastlane
     def parse(data, path = nil)
       @runner ||= Runner.new
 
-      Dir.chdir(Fastlane::FastlaneFolder.path || Dir.pwd) do # context: fastlane subfolder
+      Dir.chdir(FastlaneCore::FastlaneFolder.path || Dir.pwd) do # context: fastlane subfolder
         # create nice path that we want to print in case of some problem
         relative_path = path.nil? ? '(eval)' : Pathname.new(path).relative_path_from(Pathname.new(Dir.pwd)).to_s
 
@@ -187,6 +187,12 @@ module Fastlane
 
     def fastlane_require(gem_name)
       FastlaneRequire.install_gem_if_needed(gem_name: gem_name, require_gem: true)
+    end
+
+    def generated_fastfile_id(id)
+      # This value helps us track success/failure metrics for Fastfiles we
+      # generate as part of an automated process.
+      ENV['GENERATED_FASTFILE_ID'] = id
     end
 
     def import(path = nil)

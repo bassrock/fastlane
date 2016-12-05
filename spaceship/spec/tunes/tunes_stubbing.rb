@@ -184,18 +184,18 @@ end
 
 def itc_stub_testflight
   %w(appletvos ios).each do |type|
-      # Reject review
-      stub_request(:post, "https://itunesconnect.apple.com/WebObjects/iTunesConnect.woa/ra/apps/898536088/platforms/#{type}/trains/1.0/builds/10/reject").
-        with(body: "{}").
+    # Test information
+    stub_request(:get, "https://itunesconnect.apple.com/WebObjects/iTunesConnect.woa/ra/apps/898536088/platforms/#{type}/trains/1.0/builds/10/testInformation").
+      to_return(status: 200, body: itc_read_fixture_file("testflight_build_info_#{type}.json"), headers: { 'Content-Type' => 'application/json' })
+
+    # Reject review
+    stub_request(:post, "https://itunesconnect.apple.com/WebObjects/iTunesConnect.woa/ra/apps/898536088/platforms/#{type}/trains/1.0/builds/10/reject").
+      with(body: "{}").
       to_return(status: 200, body: "{}", headers: { 'Content-Type' => 'application/json' })
 
-      # Submission
-      stub_request(:post, "https://itunesconnect.apple.com/WebObjects/iTunesConnect.woa/ra/apps/898536088/platforms/ios/trains/1.0/builds/10/review/submit").
-      to_return(status: 200, body: itc_read_fixture_file('testflight_submission_submit_#{type}.json'), headers: { 'Content-Type' => 'application/json' })
-      
-      # Test information
-      stub_request(:get, "https://itunesconnect.apple.com/WebObjects/iTunesConnect.woa/ra/apps/898536088/platforms/ios/trains/1.0/builds/10/testInformation").
-      to_return(status: 200, body: itc_read_fixture_file('testflight_build_info.json'), headers: { 'Content-Type' => 'application/json' })
+    # Submission
+    stub_request(:post, "https://itunesconnect.apple.com/WebObjects/iTunesConnect.woa/ra/apps/898536088/platforms/#{type}/trains/1.0/builds/10/review/submit").
+      to_return(status: 200, body: itc_read_fixture_file("testflight_submission_submit_#{type}.json"), headers: { 'Content-Type' => 'application/json' })
   end
 end
 
@@ -281,6 +281,12 @@ end
 def itc_stub_promocodes_history
   stub_request(:get, "https://itunesconnect.apple.com/WebObjects/iTunesConnect.woa/ra/apps/898536088/promocodes/history").
     to_return(status: 200, body: itc_read_fixture_file("promocodes_history.json"),
+              headers: { "Content-Type" => "application/json" })
+end
+
+def itc_stub_reject_version_success
+  stub_request(:post, "https://itunesconnect.apple.com/WebObjects/iTunesConnect.woa/ra/apps/898536088/versions/812106519/reject").
+    to_return(status: 200, body: itc_read_fixture_file("reject_app_version_success.json"),
               headers: { "Content-Type" => "application/json" })
 end
 

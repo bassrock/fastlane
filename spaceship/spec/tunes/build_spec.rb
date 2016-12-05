@@ -107,7 +107,32 @@ describe Spaceship::Tunes::Build do
           build_number: "10",
           platform: "ios",
           changelog: "Custom Changelog"
-})
+        })
+      end
+    end
+
+    describe "submitting/rejecting a build (appletvos)" do
+      before do
+        train = app.build_trains(platform: 'appletvos').values.first
+        @build = train.builds.first
+      end
+
+      it "#cancel_beta_review!" do
+        @build.cancel_beta_review!
+      end
+
+      it "#submit_for_beta_review!" do
+        r = @build.submit_for_beta_review!({
+          changelog: "Custom Changelog"
+        })
+
+        expect(r).to eq({
+          app_id: "898536088",
+          train: "1.0",
+          build_number: "10",
+          platform: "appletvos",
+          changelog: "Custom Changelog"
+        })
       end
     end
 

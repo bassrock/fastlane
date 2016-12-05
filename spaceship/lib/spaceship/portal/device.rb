@@ -22,7 +22,7 @@ module Spaceship
       #   "ios"
       attr_accessor :platform
 
-      # @return (String) Status of the device. Probably always "c"
+      # @return (String) Status of the device. "c" for enabled devices, "r" for disabled devices.
       # @example
       #   "c"
       attr_accessor :status
@@ -60,16 +60,17 @@ module Spaceship
 
         # <b>DEPRECATED:</b> Use <tt>all_by_platform</tt> instead.
         # @param mac [Bool] Fetches Mac devices if true
+        # @param include_disabled [Bool] Whether to include disable devices. false by default.
         # @return (Array) Returns all devices registered for this account
-        def all(mac: false)
+        def all(mac: false, include_disabled: false)
           puts '`all` is deprecated. Please use `all_by_platform` instead.'.red
-          all_by_platform(platform: mac ? Spaceship::Portal::App::MAC : Spaceship::Portal::App::IOS)
+          all_by_platform(platform: mac ? Spaceship::Portal::App::MAC : Spaceship::Portal::App::IOS, include_disabled: include_disabled)
         end
 
         # @param platform [String] Fetches devices of a specific platform
         # @return (Array) Returns all devices registered for this account
-        def all_by_platform(platform: Spaceship::Portal::App::IOS)
-          client.devices_by_platform(platform: platform).map { |device| self.factory(device) }
+        def all_by_platform(platform: Spaceship::Portal::App::IOS, include_disabled: false)
+          client.devices_by_platform(platform: platform, include_disabled: include_disabled).map { |device| self.factory(device) }
         end
 
         # @return (Array) Returns all Apple TVs registered for this account
@@ -118,50 +119,53 @@ module Spaceship
 
         # <b>DEPRECATED:</b> Use <tt>find_by_platform</tt> instead.
         # @param mac [Bool] Searches for Macs if true
+        # @param include_disabled [Bool] Whether to include disable devices. false by default.
         # @return (Device) Find a device based on the ID of the device. *Attention*:
         #  This is *not* the UDID. nil if no device was found.
-        def find(device_id, mac: false)
+        def find(device_id, mac: false, include_disabled: false)
           puts '`find` is deprecated. Please use `find_by_platform` instead.'.red
-          find_by_platform(device_id, platform: mac ? Spaceship::Portal::App::MAC : Spaceship::Portal::App::IOS)
+          find_by_platform(device_id, platform: mac ? Spaceship::Portal::App::MAC : Spaceship::Portal::App::IOS, include_disabled: include_disabled)
         end
 
         # @param platform [String] Searches for specified platform
         # @return (Device) Find a device based on the ID of the device. *Attention*:
         #  This is *not* the UDID. nil if no device was found.
-        def find_by_platform(device_id, platform: Spaceship::Portal::App::IOS)
-          all_by_platform(platform: platform).detect do |device|
+        def find_by_platform(device_id, platform: Spaceship::Portal::App::IOS, include_disabled: false)
+          all_by_platform(platform: platform, include_disabled: include_disabled).detect do |device|
             device.id == device_id
           end
         end
 
         # <b>DEPRECATED:</b> Use <tt>find_by_udid_by_platform</tt> instead.
         # @param mac [Bool] Searches for Macs if true
+        # @param include_disabled [Bool] Whether to include disable devices. false by default.
         # @return (Device) Find a device based on the UDID of the device. nil if no device was found.
-        def find_by_udid(device_udid, mac: false)
+        def find_by_udid(device_udid, mac: false, include_disabled: false)
           puts '`find_by_udid` is deprecated. Please use `find_by_udid_by_platform` instead.'.red
-          find_by_udid_by_platform(device_udid, platform: mac ? Spaceship::Portal::App::MAC : Spaceship::Portal::App::IOS)
+          find_by_udid_by_platform(device_udid, platform: mac ? Spaceship::Portal::App::MAC : Spaceship::Portal::App::IOS, include_disabled: include_disabled)
         end
 
         # @param platform [String] Searches for specified platform
         # @return (Device) Find a device based on the UDID of the device. nil if no device was found.
-        def find_by_udid_by_platform(device_udid, platform: Spaceship::Portal::App::IOS)
-          all_by_platform(platform: platform).detect do |device|
+        def find_by_udid_by_platform(device_udid, platform: Spaceship::Portal::App::IOS, include_disabled: false)
+          all_by_platform(platform: platform, include_disabled: include_disabled).detect do |device|
             device.udid.casecmp(device_udid) == 0
           end
         end
 
         # <b>DEPRECATED:</b> Use <tt>find_by_name_by_platform</tt> instead.
         # @param mac [Bool] Searches for Macs if true
+        # @param include_disabled [Bool] Whether to include disable devices. false by default.
         # @return (Device) Find a device based on its name. nil if no device was found.
-        def find_by_name(device_name, mac: false)
+        def find_by_name(device_name, mac: false, include_disabled: false)
           puts '`find_by_name` is deprecated. Please use `find_by_name_by_platform` instead.'.red
-          find_by_name_by_platform(device_name, platform: mac ? Spaceship::Portal::App::MAC : Spaceship::Portal::App::IOS)
+          find_by_name_by_platform(device_name, platform: mac ? Spaceship::Portal::App::MAC : Spaceship::Portal::App::IOS, include_disabled: include_disabled)
         end
 
         # @param platform [String] Searches for specified platform
         # @return (Device) Find a device based on its name. nil if no device was found.
-        def find_by_name_by_platform(device_name, platform: Spaceship::Portal::App::IOS)
-          all_by_platform(platform: platform).detect do |device|
+        def find_by_name_by_platform(device_name, platform: Spaceship::Portal::App::IOS, include_disabled: false)
+          all_by_platform(platform: platform, include_disabled: include_disabled).detect do |device|
             device.name == device_name
           end
         end
@@ -202,6 +206,31 @@ module Spaceship
 
           # Update self with the new device
           self.new(device)
+        end
+      end
+
+      def enabled?
+        return self.status == "c"
+      end
+
+      def disabled?
+        return self.status == "r"
+      end
+
+      # Enable current device.
+      def enable!
+        unless enabled?
+          attr = client.enable_device!(self.id, self.udid, mac: self.platform == 'mac')
+          initialize(attr)
+        end
+      end
+
+      # Disable current device. This will invalidate all provisioning profiles that use this device.
+      def disable!
+        if enabled?
+          client.disable_device!(self.id, self.udid, mac: self.platform == 'mac')
+          # disable request doesn't return device json, so we assume that the new status is "r" if response succeeded
+          self.status = "r"
         end
       end
     end
